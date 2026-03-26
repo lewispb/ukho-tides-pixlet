@@ -1,0 +1,12 @@
+[Unit]
+Description=Push UKHO tide display to Tidbyt
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ukho-tides/env
+WorkingDirectory=/app
+ExecStart=/usr/bin/ruby /app/bin/push
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>ukho-tides-pixlet</Name>
+  <Repository>ghcr.io/lewispb/ukho-tides-pixlet:latest</Repository>
+  <Registry>https://github.com/lewispb/ukho-tides-pixlet</Registry>
+  <Branch>
+    <Tag>latest</Tag>
+    <TagDescription>Latest stable release</TagDescription>
+  </Branch>
+  <Network>bridge</Network>
+  <Privileged>true</Privileged>
+  <Support>https://github.com/lewispb/ukho-tides-pixlet/issues</Support>
+  <Project>https://github.com/lewispb/ukho-tides-pixlet</Project>
+  <Overview>Display UK tide times on your Tidbyt device using UKHO Admiralty tidal data. Shows a tide curve chart with next high/low times and heights. Station is configurable (defaults to Salcombe).</Overview>
+  <Category>Tools:</Category>
+  <Description>Display UK tide times on your Tidbyt device using UKHO Admiralty tidal data. Shows a tide curve chart with next high/low times and heights. Station is configurable (defaults to Salcombe).</Description>
+  <Requires>Requires a UKHO Admiralty API key (free) and Tidbyt device credentials.</Requires>
+  <Config Name="Admiralty API Key" Target="ADMIRALTY_API_KEY" Default="" Mode="" Description="UKHO Admiralty API subscription key. Sign up free at https://admiraltyapi.portal.azure-api.net" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="Tidbyt Device ID" Target="TIDBYT_DEVICE_ID" Default="" Mode="" Description="Your Tidbyt device ID (find in Tidbyt app settings)" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="Tidbyt API Token" Target="TIDBYT_API_TOKEN" Default="" Mode="" Description="Your Tidbyt API token (find in Tidbyt app settings)" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="Station ID" Target="STATION_ID" Default="0020" Mode="" Description="UKHO station ID. Default 0020 = Salcombe. Find IDs at https://easytide.admiralty.co.uk" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Push Interval" Target="PUSH_INTERVAL" Default="15min" Mode="" Description="How often to update the Tidbyt display (systemd timer format, e.g. 15min, 30min, 1h)" Type="Variable" Display="always" Required="false" Mask="false"/>
+</Container>

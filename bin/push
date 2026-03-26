@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "time"
+require_relative "../lib/ukho_client"
+require_relative "../lib/tide_calculator"
+require_relative "../lib/renderer"
+require_relative "../lib/tidbyt_push"
+
+station_id = ENV.fetch("STATION_ID", "0020")
+api_key    = ENV.fetch("ADMIRALTY_API_KEY")
+
+client = UkhoClient.new(api_key)
+
+puts "Fetching station info for #{station_id}..."
+name = client.station_name(station_id)
+puts "Station: #{name}"
+
+puts "Fetching tidal events..."
+events = client.tidal_events(station_id)
+puts "Got #{events.length} events"
+
+calculator = TideCalculator.new(events)
+renderer   = Renderer.new(name, calculator)
+webp_data  = renderer.to_webp
+puts "Rendered image (#{webp_data.bytesize} bytes)"
+
+device_id = ENV.fetch("TIDBYT_DEVICE_ID")
+api_token = ENV.fetch("TIDBYT_API_TOKEN")
+
+TidbytPush.new(device_id: device_id, api_token: api_token).push(webp_data)
+puts "Pushed to Tidbyt device #{device_id}"

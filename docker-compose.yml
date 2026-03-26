@@ -1,0 +1,12 @@
+services:
+  ukho-tides:
+    build: .
+    container_name: ukho-tides-pixlet
+    restart: unless-stopped
+    privileged: true
+    env_file: .env
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /run
+      - /tmp
