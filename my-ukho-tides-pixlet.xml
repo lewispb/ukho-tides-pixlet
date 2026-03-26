@@ -6,7 +6,7 @@
   <Network>bridge</Network>
   <MyIP/>
   <Shell>bash</Shell>
-  <Privileged>true</Privileged>
+  <Privileged>false</Privileged>
   <Support>https://github.com/lewispb/ukho-tides-pixlet/issues</Support>
   <Project>https://github.com/lewispb/ukho-tides-pixlet</Project>
   <Overview>Display UK tide times on your Tidbyt device using UKHO Admiralty tidal data. Shows a tide curve chart with next high/low times and heights. Station is configurable (defaults to Salcombe).</Overview>
@@ -14,7 +14,7 @@
   <WebUI/>
   <TemplateURL/>
   <Icon/>
-  <ExtraParams>--tmpfs /run --tmpfs /tmp -v /sys/fs/cgroup:/sys/fs/cgroup:rw</ExtraParams>
+  <ExtraParams/>
   <PostArgs/>
   <CPUset/>
   <DonateText/>
@@ -24,5 +24,5 @@
   <Config Name="Tidbyt Device ID" Target="TIDBYT_DEVICE_ID" Default="" Mode="" Description="Your Tidbyt device ID (find in Tidbyt app settings)" Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="Tidbyt API Token" Target="TIDBYT_API_TOKEN" Default="" Mode="" Description="Your Tidbyt API token (find in Tidbyt app settings)" Type="Variable" Display="always" Required="true" Mask="true"/>
   <Config Name="Station ID" Target="STATION_ID" Default="0020" Mode="" Description="UKHO station ID. Default 0020 = Salcombe. Find IDs at https://easytide.admiralty.co.uk" Type="Variable" Display="always" Required="false" Mask="false">0020</Config>
-  <Config Name="Push Interval" Target="PUSH_INTERVAL" Default="15min" Mode="" Description="How often to update the Tidbyt display (systemd timer format, e.g. 15min, 30min, 1h)" Type="Variable" Display="always" Required="false" Mask="false">15min</Config>
+  <Config Name="Push Interval (seconds)" Target="PUSH_INTERVAL_SECONDS" Default="900" Mode="" Description="How often to update the Tidbyt display in seconds (default 900 = 15 minutes)" Type="Variable" Display="always" Required="false" Mask="false">900</Config>
 </Container>

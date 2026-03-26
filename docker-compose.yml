@@ -3,10 +3,4 @@ services:
     image: ghcr.io/lewispb/ukho-tides-pixlet:latest
     container_name: ukho-tides-pixlet
     restart: unless-stopped
-    privileged: true
     env_file: .env
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    tmpfs:
-      - /run
-      - /tmp

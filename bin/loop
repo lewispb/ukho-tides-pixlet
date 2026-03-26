@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "time"
+require_relative "../lib/ukho_client"
+require_relative "../lib/tide_calculator"
+require_relative "../lib/renderer"
+require_relative "../lib/tidbyt_push"
+
+$stdout.sync = true
+
+interval = Integer(ENV.fetch("PUSH_INTERVAL_SECONDS", 900))
+station_id = ENV.fetch("STATION_ID", "0020")
+
+puts "[ukho-tides] Starting with station_id=#{station_id} interval=#{interval}s"
+
+loop do
+  begin
+    api_key = ENV.fetch("ADMIRALTY_API_KEY")
+    device_id = ENV.fetch("TIDBYT_DEVICE_ID")
+    api_token = ENV.fetch("TIDBYT_API_TOKEN")
+
+    puts "[ukho-tides] Fetching station info..."
+    client = UkhoClient.new(api_key)
+    name = client.station_name(station_id)
+    puts "[ukho-tides] Station: #{name}"
+
+    puts "[ukho-tides] Fetching tidal events..."
+    events = client.tidal_events(station_id)
+    puts "[ukho-tides] Got #{events.length} events"
+
+    now = Time.now.utc
+    calculator = TideCalculator.new(events)
+
+    next_high = calculator.next_high(now)
+    next_low = calculator.next_low(now)
+    puts "[ukho-tides] Next high: #{next_high&.dig(:time)} #{next_high&.dig(:height)}m" if next_high
+    puts "[ukho-tides] Next low:  #{next_low&.dig(:time)} #{next_low&.dig(:height)}m" if next_low
+
+    renderer = Renderer.new(name, calculator, now: now)
+    webp_data = renderer.to_webp
+    puts "[ukho-tides] Rendered image (#{webp_data.bytesize} bytes)"
+
+    TidbytPush.new(device_id: device_id, api_token: api_token).push(webp_data)
+    puts "[ukho-tides] Pushed to Tidbyt device #{device_id}"
+  rescue => e
+    puts "[ukho-tides] ERROR: #{e.class}: #{e.message}"
+    puts e.backtrace.first(5).map { |l| "[ukho-tides]   #{l}" }.join("\n")
+  end
+
+  puts "[ukho-tides] Sleeping #{interval}s..."
+  sleep interval
+end
