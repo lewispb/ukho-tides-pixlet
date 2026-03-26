@@ -31,13 +31,12 @@ class RendererTest < Minitest::Test
     assert_equal 32, image.height
   end
 
-  def test_render_image_has_station_name_pixels
+  def test_render_image_has_high_tide_pixels
     image = @renderer.send(:render_image)
 
-    # Station name "SALCOMBE" drawn at (1, 0) in amber — first pixel of "S" should be lit
-    # "S" top row is 0b111 — pixel at (1, 0) should be amber
-    amber = ChunkyPNG::Color.rgb(255, 170, 0)
-    assert_equal amber, image[1, 0]
+    # Up arrow drawn at (1, 0) in cyan — top center pixel of arrow should be lit
+    cyan = ChunkyPNG::Color.rgb(0, 204, 255)
+    assert_equal cyan, image[3, 0] # arrow pixel [0,0,1,0,0] -> x=3
   end
 
   def test_render_image_has_now_line

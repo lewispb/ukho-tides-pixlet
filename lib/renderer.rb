@@ -9,7 +9,7 @@ class Renderer
   HEIGHT = 32
 
   # Graph area
-  GRAPH_TOP    = 11
+  GRAPH_TOP    = 6
   GRAPH_BOTTOM = 31
   GRAPH_HEIGHT = GRAPH_BOTTOM - GRAPH_TOP + 1
 
@@ -70,34 +70,23 @@ class Renderer
   end
 
   def draw_header(image)
-    # Row 0: station name
-    BitmapFont.draw_text(image, 1, 0, @station_name, COLOR_STATION)
-
-    # Row 6: next high tide
+    # Row 0: high tide (left) and low tide (right)
     next_high = @calculator.next_high(@now)
+    next_low = @calculator.next_low(@now)
+
     if next_high
       ht = format_local_time(next_high[:time])
-      BitmapFont.draw_arrow(image, 1, 6, BitmapFont::UP_ARROW, COLOR_HIGH)
-      BitmapFont.draw_text(image, 7, 6, "#{ht} #{format_height(next_high[:height])}", COLOR_HIGH)
+      BitmapFont.draw_arrow(image, 1, 0, BitmapFont::UP_ARROW, COLOR_HIGH)
+      BitmapFont.draw_text(image, 7, 0, "#{ht} #{format_height(next_high[:height])}", COLOR_HIGH)
     end
 
-    # Would overlap on 32px height, so skip low tide text row if no room
-    # Actually we have room: row 0-4 station, row 6-10 high, graph starts at 11
-    # There isn't room for a third text row before the graph, so we show high/low
-    # on the same row, split left/right
-    next_low = @calculator.next_low(@now)
-    if next_low && next_high
-      # Show low tide on right side of same row or on the station name row's right side
+    if next_low
       lt = format_local_time(next_low[:time])
       low_text = "#{lt} #{format_height(next_low[:height])}"
-      low_width = BitmapFont.text_width(low_text) + 6 # 5 for arrow + 1 spacing
+      low_width = BitmapFont.text_width(low_text) + 6
       low_x = WIDTH - low_width
-      BitmapFont.draw_arrow(image, low_x, 6, BitmapFont::DOWN_ARROW, COLOR_LOW)
-      BitmapFont.draw_text(image, low_x + 6, 6, low_text, COLOR_LOW)
-    elsif next_low
-      lt = format_local_time(next_low[:time])
-      BitmapFont.draw_arrow(image, 1, 6, BitmapFont::DOWN_ARROW, COLOR_LOW)
-      BitmapFont.draw_text(image, 7, 6, "#{lt} #{format_height(next_low[:height])}", COLOR_LOW)
+      BitmapFont.draw_arrow(image, low_x, 0, BitmapFont::DOWN_ARROW, COLOR_LOW)
+      BitmapFont.draw_text(image, low_x + 6, 0, low_text, COLOR_LOW)
     end
   end
 
