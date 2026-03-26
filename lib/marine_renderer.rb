@@ -79,19 +79,21 @@ class MarineRenderer
     image
   end
 
-  # Row 0: wind icon + speed + direction arrow + gust
+  # Row 0: wind icon + speed-gusts + KN + direction arrow
   def draw_wind(image)
     draw_icon(image, 0, 0, WIND_ICON, COLOR_ICON)
 
     speed = (@wind[:speed_kn] || 0).round
-    cursor = BitmapFont.draw_text(image, 7, 0, "#{speed}KN", COLOR_WIND)
+    gusts = @wind[:gusts_kn]&.round
 
-    draw_direction_arrow(image, cursor + 1, 0, @wind[:direction], COLOR_WIND)
-
-    gusts = @wind[:gusts_kn]
-    if gusts
-      BitmapFont.draw_text(image, cursor + 8, 0, "G#{gusts.round}", COLOR_WIND)
+    wind_text = if gusts && gusts > speed
+      "#{speed}-#{gusts}KN"
+    else
+      "#{speed}KN"
     end
+
+    cursor = BitmapFont.draw_text(image, 7, 0, wind_text, COLOR_WIND)
+    draw_direction_arrow(image, cursor + 1, 0, @wind[:direction], COLOR_WIND)
   end
 
   # Row 11: wave icon + swell height + period + direction arrow
