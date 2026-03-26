@@ -23,7 +23,7 @@ class TidbytPushTest < Minitest::Test
 
     assert_requested(:post, "https://api.tidbyt.com/v0/devices/test-device/push") do |req|
       body = JSON.parse(req.body)
-      body["installationID"] == "ukho-tides" &&
+      body["installationID"] == "ukhotides" &&
         body["background"] == false &&
         body["image"] == Base64.strict_encode64("fake-webp-data")
     end

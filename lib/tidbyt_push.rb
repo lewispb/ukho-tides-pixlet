@@ -13,7 +13,7 @@ class TidbytPush
     @api_token = api_token
   end
 
-  def push(webp_data, installation_id: "ukho-tides")
+  def push(webp_data, installation_id: "ukhotides")
     uri = URI("#{API_BASE}/#{@device_id}/push")
     request = Net::HTTP::Post.new(uri)
     request["Authorization"] = "Bearer #{@api_token}"
