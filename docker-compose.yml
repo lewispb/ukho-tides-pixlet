@@ -1,6 +1,6 @@
 services:
   ukho-tides:
-    build: .
+    image: ghcr.io/lewispb/ukho-tides-pixlet:latest
     container_name: ukho-tides-pixlet
     restart: unless-stopped
     privileged: true
