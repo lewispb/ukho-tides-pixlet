@@ -18,13 +18,14 @@ Browse https://easytide.admiralty.co.uk to find your station. Default is `0020` 
 ### 3. Run with Docker
 
 ```bash
-cp .env.example .env
-# Edit .env with your credentials
-
-docker compose up -d
+docker run -d --name ukho-tides-pixlet --restart unless-stopped \
+  -e ADMIRALTY_API_KEY=xxx \
+  -e TIDBYT_DEVICE_ID=xxx \
+  -e TIDBYT_API_TOKEN=xxx \
+  ghcr.io/lewispb/ukho-tides-pixlet:latest
 ```
 
-The container uses a systemd timer to push updates every 15 minutes.
+The container pushes updates to your Tidbyt every 15 minutes.
 
 ### 4. Run locally
 
@@ -33,15 +34,11 @@ bundle install
 ADMIRALTY_API_KEY=xxx TIDBYT_DEVICE_ID=xxx TIDBYT_API_TOKEN=xxx ruby bin/push
 ```
 
-Requires Ruby and ImageMagick (`convert` command).
+Requires Ruby and ImageMagick.
 
 ## Unraid
 
-Install via Community Applications using the included template, or manually:
-
-1. Clone this repo on your Unraid server
-2. Copy `.env.example` to `.env` and fill in your credentials
-3. Run `docker compose up -d`
+An Unraid Docker template is included. Add the container via the Docker tab and fill in your credentials.
 
 ## Configuration
 
@@ -51,4 +48,4 @@ Install via Community Applications using the included template, or manually:
 | `TIDBYT_DEVICE_ID` | Yes | — | Tidbyt device ID |
 | `TIDBYT_API_TOKEN` | Yes | — | Tidbyt API token |
 | `STATION_ID` | No | `0020` | UKHO station ID (0020 = Salcombe) |
-| `PUSH_INTERVAL` | No | `15min` | Update interval (systemd timer format) |
+| `PUSH_INTERVAL_SECONDS` | No | `900` | Seconds between pushes (default 15 min) |
