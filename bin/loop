@@ -5,6 +5,8 @@ require "time"
 require_relative "../lib/ukho_client"
 require_relative "../lib/tide_calculator"
 require_relative "../lib/renderer"
+require_relative "../lib/open_meteo_client"
+require_relative "../lib/marine_renderer"
 require_relative "../lib/tidbyt_push"
 
 $stdout.sync = true
@@ -19,11 +21,13 @@ loop do
     api_key = ENV.fetch("ADMIRALTY_API_KEY")
     device_id = ENV.fetch("TIDBYT_DEVICE_ID")
     api_token = ENV.fetch("TIDBYT_API_TOKEN")
+    tidbyt = TidbytPush.new(device_id: device_id, api_token: api_token)
 
+    # --- Screen 1: Tides ---
     puts "[ukho-tides] Fetching station info..."
     client = UkhoClient.new(api_key)
-    name = client.station_name(station_id)
-    puts "[ukho-tides] Station: #{name}"
+    station = client.station_info(station_id)
+    puts "[ukho-tides] Station: #{station[:name]} (#{station[:latitude]}, #{station[:longitude]})"
 
     puts "[ukho-tides] Fetching tidal events..."
     events = client.tidal_events(station_id)
@@ -37,12 +41,29 @@ loop do
     puts "[ukho-tides] Next high: #{next_high&.dig(:time)} #{next_high&.dig(:height)}m" if next_high
     puts "[ukho-tides] Next low:  #{next_low&.dig(:time)} #{next_low&.dig(:height)}m" if next_low
 
-    renderer = Renderer.new(name, calculator, now: now)
-    webp_data = renderer.to_webp
-    puts "[ukho-tides] Rendered image (#{webp_data.bytesize} bytes)"
+    tide_renderer = Renderer.new(station[:name], calculator, now: now)
+    tide_webp = tide_renderer.to_webp
+    puts "[ukho-tides] Rendered tide image (#{tide_webp.bytesize} bytes)"
 
-    TidbytPush.new(device_id: device_id, api_token: api_token).push(webp_data)
-    puts "[ukho-tides] Pushed to Tidbyt device #{device_id}"
+    tidbyt.push(tide_webp, installation_id: "ukhotides")
+    puts "[ukho-tides] Pushed tide screen"
+
+    # --- Screen 2: Marine weather ---
+    puts "[ukho-tides] Fetching marine weather..."
+    meteo = OpenMeteoClient.new(latitude: station[:latitude], longitude: station[:longitude])
+
+    marine = meteo.current_marine
+    wind = meteo.current_wind
+    puts "[ukho-tides] Wind: #{wind[:speed_kn]&.round}kn gusts #{wind[:gusts_kn]&.round}kn dir #{wind[:direction]}°"
+    puts "[ukho-tides] Swell: #{marine[:swell_height]}m #{marine[:swell_period]}s dir #{marine[:swell_direction]}°"
+    puts "[ukho-tides] Waves: #{marine[:wave_height]}m"
+
+    marine_renderer = MarineRenderer.new(marine: marine, wind: wind)
+    marine_webp = marine_renderer.to_webp
+    puts "[ukho-tides] Rendered marine image (#{marine_webp.bytesize} bytes)"
+
+    tidbyt.push(marine_webp, installation_id: "ukhotidesmarine")
+    puts "[ukho-tides] Pushed marine screen"
   rescue => e
     puts "[ukho-tides] ERROR: #{e.class}: #{e.message}"
     puts e.backtrace.first(5).map { |l| "[ukho-tides]   #{l}" }.join("\n")

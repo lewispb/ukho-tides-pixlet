@@ -11,9 +11,18 @@ class UkhoClient
     @api_key = api_key
   end
 
-  def station_name(station_id)
+  def station_info(station_id)
     data = get("#{API_BASE}/#{station_id}")
-    data.dig("properties", "Name") || station_id
+    coords = data.dig("geometry", "coordinates") || []
+    {
+      name: data.dig("properties", "Name") || station_id,
+      longitude: coords[0]&.to_f,
+      latitude: coords[1]&.to_f,
+    }
+  end
+
+  def station_name(station_id)
+    station_info(station_id)[:name]
   end
 
   def tidal_events(station_id)

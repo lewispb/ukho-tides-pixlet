@@ -5,28 +5,34 @@ require "time"
 require_relative "../lib/ukho_client"
 require_relative "../lib/tide_calculator"
 require_relative "../lib/renderer"
+require_relative "../lib/open_meteo_client"
+require_relative "../lib/marine_renderer"
 require_relative "../lib/tidbyt_push"
+
+$stdout.sync = true
 
 station_id = ENV.fetch("STATION_ID", "0020")
 api_key    = ENV.fetch("ADMIRALTY_API_KEY")
+device_id  = ENV.fetch("TIDBYT_DEVICE_ID")
+api_token  = ENV.fetch("TIDBYT_API_TOKEN")
+tidbyt     = TidbytPush.new(device_id: device_id, api_token: api_token)
 
+# Tides
 client = UkhoClient.new(api_key)
+station = client.station_info(station_id)
+puts "Station: #{station[:name]} (#{station[:latitude]}, #{station[:longitude]})"
 
-puts "Fetching station info for #{station_id}..."
-name = client.station_name(station_id)
-puts "Station: #{name}"
-
-puts "Fetching tidal events..."
 events = client.tidal_events(station_id)
-puts "Got #{events.length} events"
-
+now = Time.now.utc
 calculator = TideCalculator.new(events)
-renderer   = Renderer.new(name, calculator)
-webp_data  = renderer.to_webp
-puts "Rendered image (#{webp_data.bytesize} bytes)"
+tide_webp = Renderer.new(station[:name], calculator, now: now).to_webp
+tidbyt.push(tide_webp, installation_id: "ukhotides")
+puts "Pushed tide screen (#{tide_webp.bytesize} bytes)"
 
-device_id = ENV.fetch("TIDBYT_DEVICE_ID")
-api_token = ENV.fetch("TIDBYT_API_TOKEN")
-
-TidbytPush.new(device_id: device_id, api_token: api_token).push(webp_data)
-puts "Pushed to Tidbyt device #{device_id}"
+# Marine weather
+meteo = OpenMeteoClient.new(latitude: station[:latitude], longitude: station[:longitude])
+marine = meteo.current_marine
+wind = meteo.current_wind
+marine_webp = MarineRenderer.new(marine: marine, wind: wind).to_webp
+tidbyt.push(marine_webp, installation_id: "ukhotidesmarine")
+puts "Pushed marine screen (#{marine_webp.bytesize} bytes)"
