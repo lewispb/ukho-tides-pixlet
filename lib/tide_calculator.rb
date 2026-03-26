@@ -23,9 +23,9 @@ class TideCalculator
   # Generate 64 (x, y) tide curve points spanning 12 hours centered on now.
   # x = pixel column (0..63), y = interpolated height in metres.
   def curve_points(now)
-    t_start = now - (WINDOW_HOURS * 3600)
-    t_end   = now + (WINDOW_HOURS * 3600)
-    dt = (t_end - t_start).to_f / NUM_POINTS
+    t_start = now.to_f - (WINDOW_HOURS * 3600)
+    t_end   = now.to_f + (WINDOW_HOURS * 3600)
+    dt = (t_end - t_start) / NUM_POINTS
 
     NUM_POINTS.times.map do |i|
       t = t_start + (i * dt)
@@ -51,6 +51,7 @@ class TideCalculator
     prev_event = nil
     next_event = nil
 
+    t = t.to_f
     @events.each_cons(2) do |a, b|
       if a[:time].to_f <= t && b[:time].to_f > t
         prev_event = a
