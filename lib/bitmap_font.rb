@@ -44,6 +44,7 @@ module BitmapFont
     "." => [0b000, 0b000, 0b000, 0b000, 0b010],
     ":" => [0b000, 0b010, 0b000, 0b010, 0b000],
     "-" => [0b000, 0b000, 0b111, 0b000, 0b000],
+    "s" => [0b000, 0b000, 0b111, 0b010, 0b111],
   }.freeze
 
   GLYPH_WIDTH  = 3
@@ -75,7 +76,7 @@ module BitmapFont
   def draw_text(image, x, y, text, color)
     cursor_x = x
     text.each_char do |ch|
-      glyph = GLYPHS[ch.upcase]
+      glyph = GLYPHS[ch] || GLYPHS[ch.upcase]
       next unless glyph
 
       GLYPH_HEIGHT.times do |row|

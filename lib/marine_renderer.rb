@@ -103,7 +103,7 @@ class MarineRenderer
     height_text = format("%.1fM", @marine[:swell_height] || 0)
     cursor = BitmapFont.draw_text(image, 7, 11, height_text, COLOR_SWELL)
 
-    period_text = "#{(@marine[:swell_period] || 0).round}S"
+    period_text = "#{(@marine[:swell_period] || 0).round}s"
     cursor = BitmapFont.draw_text(image, cursor + 2, 11, period_text, COLOR_SWELL)
 
     draw_direction_arrow(image, cursor + 2, 11, @marine[:swell_direction], COLOR_SWELL)
