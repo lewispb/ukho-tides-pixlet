@@ -9,7 +9,7 @@ class Renderer
   HEIGHT = 32
 
   # Graph area
-  GRAPH_TOP    = 6
+  GRAPH_TOP    = 12
   GRAPH_BOTTOM = 31
   GRAPH_HEIGHT = GRAPH_BOTTOM - GRAPH_TOP + 1
 
@@ -70,23 +70,21 @@ class Renderer
   end
 
   def draw_header(image)
-    # Row 0: high tide (left) and low tide (right)
     next_high = @calculator.next_high(@now)
     next_low = @calculator.next_low(@now)
 
+    # Row 0: next high tide
     if next_high
       ht = format_local_time(next_high[:time])
       BitmapFont.draw_arrow(image, 1, 0, BitmapFont::UP_ARROW, COLOR_HIGH)
       BitmapFont.draw_text(image, 7, 0, "#{ht} #{format_height(next_high[:height])}", COLOR_HIGH)
     end
 
+    # Row 6: next low tide
     if next_low
       lt = format_local_time(next_low[:time])
-      low_text = "#{lt} #{format_height(next_low[:height])}"
-      low_width = BitmapFont.text_width(low_text) + 6
-      low_x = WIDTH - low_width
-      BitmapFont.draw_arrow(image, low_x, 0, BitmapFont::DOWN_ARROW, COLOR_LOW)
-      BitmapFont.draw_text(image, low_x + 6, 0, low_text, COLOR_LOW)
+      BitmapFont.draw_arrow(image, 1, 6, BitmapFont::DOWN_ARROW, COLOR_LOW)
+      BitmapFont.draw_text(image, 7, 6, "#{lt} #{format_height(next_low[:height])}", COLOR_LOW)
     end
   end
 
