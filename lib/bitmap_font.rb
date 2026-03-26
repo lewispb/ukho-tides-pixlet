@@ -1,55 +1,13 @@
 # frozen_string_literal: true
 
-# 3x5 pixel bitmap font for Tidbyt LED display rendering.
-# Each glyph is a 5-element array of 3-bit row bitmasks (MSB = leftmost pixel).
-module BitmapFont
-  GLYPHS = {
-    "A" => [0b111, 0b101, 0b111, 0b101, 0b101],
-    "B" => [0b110, 0b101, 0b110, 0b101, 0b110],
-    "C" => [0b111, 0b100, 0b100, 0b100, 0b111],
-    "D" => [0b110, 0b101, 0b101, 0b101, 0b110],
-    "E" => [0b111, 0b100, 0b110, 0b100, 0b111],
-    "F" => [0b111, 0b100, 0b110, 0b100, 0b100],
-    "G" => [0b111, 0b100, 0b101, 0b101, 0b111],
-    "H" => [0b101, 0b101, 0b111, 0b101, 0b101],
-    "I" => [0b111, 0b010, 0b010, 0b010, 0b111],
-    "J" => [0b011, 0b001, 0b001, 0b101, 0b111],
-    "K" => [0b101, 0b101, 0b110, 0b101, 0b101],
-    "L" => [0b100, 0b100, 0b100, 0b100, 0b111],
-    "M" => [0b101, 0b111, 0b111, 0b101, 0b101],
-    "N" => [0b101, 0b111, 0b111, 0b101, 0b101],
-    "O" => [0b111, 0b101, 0b101, 0b101, 0b111],
-    "P" => [0b111, 0b101, 0b111, 0b100, 0b100],
-    "Q" => [0b111, 0b101, 0b101, 0b111, 0b001],
-    "R" => [0b111, 0b101, 0b111, 0b110, 0b101],
-    "S" => [0b111, 0b100, 0b111, 0b001, 0b111],
-    "T" => [0b111, 0b010, 0b010, 0b010, 0b010],
-    "U" => [0b101, 0b101, 0b101, 0b101, 0b111],
-    "V" => [0b101, 0b101, 0b101, 0b101, 0b010],
-    "W" => [0b101, 0b101, 0b111, 0b111, 0b101],
-    "X" => [0b101, 0b101, 0b010, 0b101, 0b101],
-    "Y" => [0b101, 0b101, 0b010, 0b010, 0b010],
-    "Z" => [0b111, 0b001, 0b010, 0b100, 0b111],
-    "0" => [0b111, 0b101, 0b101, 0b101, 0b111],
-    "1" => [0b010, 0b110, 0b010, 0b010, 0b111],
-    "2" => [0b111, 0b001, 0b111, 0b100, 0b111],
-    "3" => [0b111, 0b001, 0b111, 0b001, 0b111],
-    "4" => [0b101, 0b101, 0b111, 0b001, 0b001],
-    "5" => [0b111, 0b100, 0b111, 0b001, 0b111],
-    "6" => [0b111, 0b100, 0b111, 0b101, 0b111],
-    "7" => [0b111, 0b001, 0b001, 0b001, 0b001],
-    "8" => [0b111, 0b101, 0b111, 0b101, 0b111],
-    "9" => [0b111, 0b101, 0b111, 0b001, 0b111],
-    " " => [0b000, 0b000, 0b000, 0b000, 0b000],
-    "." => [0b000, 0b000, 0b000, 0b000, 0b010],
-    ":" => [0b000, 0b010, 0b000, 0b010, 0b000],
-    "-" => [0b000, 0b000, 0b111, 0b000, 0b000],
-    "s" => [0b000, 0b000, 0b111, 0b010, 0b111],
-  }.freeze
+require "tempfile"
 
-  GLYPH_WIDTH  = 3
-  GLYPH_HEIGHT = 5
-  CHAR_SPACING = 1
+# Text and icon rendering for Tidbyt LED display.
+# Uses ImageMagick with Tom Thumb BDF font for crisp pixel-perfect text.
+# Arrows are hand-drawn pixel icons.
+module BitmapFont
+  FONT_PATH = File.expand_path("../fonts/tom-thumb.bdf", __dir__)
+  FONT_SIZE = 6
 
   # Up arrow (▲) — 5x5
   UP_ARROW = [
@@ -71,30 +29,31 @@ module BitmapFont
 
   module_function
 
-  # Draw a string onto a ChunkyPNG image at (x, y) in the given color.
-  # Returns the x position after the last character (for chaining).
-  def draw_text(image, x, y, text, color)
-    cursor_x = x
-    text.each_char do |ch|
-      glyph = GLYPHS[ch] || GLYPHS[ch.upcase]
-      next unless glyph
-
-      GLYPH_HEIGHT.times do |row|
-        bits = glyph[row]
-        GLYPH_WIDTH.times do |col|
-          if bits & (1 << (GLYPH_WIDTH - 1 - col)) != 0
-            px = cursor_x + col
-            py = y + row
-            image[px, py] = color if px >= 0 && px < image.width && py >= 0 && py < image.height
-          end
-        end
-      end
-      cursor_x += GLYPH_WIDTH + CHAR_SPACING
-    end
-    cursor_x
+  # Render text onto an existing PNG file using ImageMagick.
+  # color is a hex string like "#00ccff".
+  def draw_text_on_file(png_path, x, y, text, color)
+    system(
+      "magick", png_path,
+      "-font", FONT_PATH,
+      "-pointsize", FONT_SIZE.to_s,
+      "-fill", color,
+      "-annotate", "+#{x}+#{y}", text,
+      png_path,
+      exception: true
+    )
   end
 
-  # Draw a special arrow glyph (UP_ARROW or DOWN_ARROW) at (x, y).
+  # Convert PNG to WebP.
+  def convert_to_webp(png_path, webp_path)
+    system("magick", png_path, "-define", "webp:lossless=true", webp_path, exception: true)
+  end
+
+  # Measure approximate pixel width of text (Tom Thumb is 4px advance per char).
+  def text_width(text)
+    text.length * 4
+  end
+
+  # Draw a special arrow glyph (UP_ARROW or DOWN_ARROW) at (x, y) onto a ChunkyPNG image.
   def draw_arrow(image, x, y, arrow, color)
     arrow.each_with_index do |row, ry|
       row.each_with_index do |pixel, rx|
@@ -105,11 +64,5 @@ module BitmapFont
         end
       end
     end
-  end
-
-  # Measure the pixel width of a string.
-  def text_width(text)
-    return 0 if text.empty?
-    text.length * (GLYPH_WIDTH + CHAR_SPACING) - CHAR_SPACING
   end
 end

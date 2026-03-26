@@ -10,57 +10,33 @@ class BitmapFontTest < Minitest::Test
     @white = ChunkyPNG::Color.rgb(255, 255, 255)
   end
 
-  def test_text_width_single_char
-    assert_equal 3, BitmapFont.text_width("A")
-  end
-
-  def test_text_width_multiple_chars
-    # 3 chars: 3 + 1 + 3 + 1 + 3 = 11
-    assert_equal 11, BitmapFont.text_width("ABC")
-  end
-
-  def test_text_width_empty
+  def test_text_width
+    # Tom Thumb is 4px advance per character
+    assert_equal 12, BitmapFont.text_width("ABC")
+    assert_equal 4, BitmapFont.text_width("A")
     assert_equal 0, BitmapFont.text_width("")
   end
 
-  def test_draw_text_sets_pixels
-    BitmapFont.draw_text(@image, 0, 0, "A", @white)
+  def test_draw_text_on_file
+    skip "ImageMagick not installed" unless system("which convert", out: File::NULL, err: File::NULL)
 
-    # "A" top row is 0b111 — all 3 pixels lit
-    assert_equal @white, @image[0, 0]
-    assert_equal @white, @image[1, 0]
-    assert_equal @white, @image[2, 0]
-  end
+    file = Tempfile.new(["test", ".png"])
+    begin
+      @image.save(file.path)
+      BitmapFont.draw_text_on_file(file.path, 1, 5, "TEST", "#ffffff")
 
-  def test_draw_text_returns_cursor_position
-    cursor = BitmapFont.draw_text(@image, 0, 0, "AB", @white)
-    # After "AB": 2 * (3 + 1) = 8
-    assert_equal 8, cursor
-  end
-
-  def test_draw_text_case_insensitive
-    lower = ChunkyPNG::Image.new(64, 32, ChunkyPNG::Color::BLACK)
-    upper = ChunkyPNG::Image.new(64, 32, ChunkyPNG::Color::BLACK)
-
-    BitmapFont.draw_text(lower, 0, 0, "abc", @white)
-    BitmapFont.draw_text(upper, 0, 0, "ABC", @white)
-
-    assert_equal lower.to_blob, upper.to_blob
-  end
-
-  def test_draw_text_skips_unknown_chars
-    # Should not raise, just skip the unknown char
-    cursor = BitmapFont.draw_text(@image, 0, 0, "A@B", @white)
-    # Only A and B rendered: 2 * (3 + 1) = 8
-    assert_equal 8, cursor
-  end
-
-  def test_draw_text_clips_at_bounds
-    # Drawing near the edge should not raise
-    BitmapFont.draw_text(@image, 62, 0, "AB", @white)
-    # First char partially visible, second clipped
-    assert_equal @white, @image[62, 0]
-    assert_equal @white, @image[63, 0]
+      result = ChunkyPNG::Image.from_file(file.path)
+      # Should have some non-black pixels where text was drawn
+      white_pixels = 0
+      (0...64).each do |x|
+        (0...6).each do |y|
+          white_pixels += 1 if result[x, y] != ChunkyPNG::Color::BLACK
+        end
+      end
+      assert white_pixels > 0, "Expected text pixels to be drawn"
+    ensure
+      file.close!
+    end
   end
 
   def test_draw_arrow_up
@@ -83,12 +59,8 @@ class BitmapFontTest < Minitest::Test
     5.times { |x| assert_equal @white, @image[x, 0] }
   end
 
-  def test_all_glyphs_have_correct_dimensions
-    BitmapFont::GLYPHS.each do |char, rows|
-      assert_equal 5, rows.length, "Glyph '#{char}' should have 5 rows"
-      rows.each_with_index do |bits, i|
-        assert bits >= 0 && bits <= 0b111, "Glyph '#{char}' row #{i} out of 3-bit range"
-      end
-    end
+  def test_draw_arrow_clips_at_bounds
+    # Should not raise when drawing near edges
+    BitmapFont.draw_arrow(@image, 62, 30, BitmapFont::UP_ARROW, @white)
   end
 end

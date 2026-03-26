@@ -8,15 +8,15 @@ class MarineRenderer
   WIDTH  = 64
   HEIGHT = 32
 
-  COLOR_BG       = ChunkyPNG::Color.rgb(0, 0, 0)
-  COLOR_WIND     = ChunkyPNG::Color.rgb(0, 204, 255)   # cyan
-  COLOR_SWELL    = ChunkyPNG::Color.rgb(0, 204, 68)    # green
-  COLOR_WAVE     = ChunkyPNG::Color.rgb(0, 119, 255)   # blue
-  COLOR_LABEL    = ChunkyPNG::Color.rgb(130, 130, 130)  # grey
-  COLOR_ICON     = ChunkyPNG::Color.rgb(255, 170, 0)   # amber
+  COLOR_BG   = ChunkyPNG::Color.rgb(0, 0, 0)
+  COLOR_ICON = ChunkyPNG::Color.rgb(255, 170, 0)   # amber
 
-  # Compass arrows 5x5 — pointing in the direction wind/swell comes FROM
-  # We provide 8 cardinal directions, pick nearest
+  HEX_WIND  = "#00ccff"   # cyan
+  HEX_SWELL = "#00cc44"   # green
+  HEX_WAVE  = "#0077ff"   # blue
+  HEX_LABEL = "#828282"   # grey
+
+  # Compass arrows 5x5 — 8 cardinal directions
   ARROWS = {
     "N"  => [[0,0,1,0,0],[0,1,1,1,0],[1,0,1,0,1],[0,0,1,0,0],[0,0,1,0,0]],
     "NE" => [[0,1,1,1,0],[0,0,1,1,0],[0,1,0,1,0],[1,1,0,0,0],[1,0,0,0,0]],
@@ -37,7 +37,7 @@ class MarineRenderer
     [0,0,0,0,0],
   ].freeze
 
-  # Wind icon 5x5 (three horizontal lines with taper)
+  # Wind icon 5x5
   WIND_ICON = [
     [1,1,1,1,1],
     [0,0,0,0,0],
@@ -52,14 +52,20 @@ class MarineRenderer
   end
 
   def to_webp
-    image = render_image
-
     png_file = Tempfile.new(["marine", ".png"])
     webp_file = Tempfile.new(["marine", ".webp"])
     begin
+      # Step 1: ChunkyPNG draws icons + direction arrows
+      image = ChunkyPNG::Image.new(WIDTH, HEIGHT, COLOR_BG)
+      draw_icons(image)
       image.save(png_file.path)
-      system("convert", png_file.path, "-define", "webp:lossless=true", webp_file.path,
-             exception: true)
+
+      # Step 2: ImageMagick adds text
+      draw_text(png_file.path)
+
+      # Step 3: Convert to WebP
+      BitmapFont.convert_to_webp(png_file.path, webp_file.path)
+
       File.binread(webp_file.path)
     ensure
       png_file.close!
@@ -69,57 +75,50 @@ class MarineRenderer
 
   private
 
-  def render_image
-    image = ChunkyPNG::Image.new(WIDTH, HEIGHT, COLOR_BG)
+  def draw_icons(image)
+    # Wind icon + direction arrow
+    draw_icon(image, 0, 0, WIND_ICON, COLOR_ICON)
+    wind_text_width = wind_text.length * 4 + 7
+    draw_direction_arrow(image, wind_text_width + 1, 0, @wind[:direction], COLOR_ICON)
 
-    draw_wind(image)
-    draw_swell(image)
-    draw_sea_state(image)
-
-    image
+    # Wave icon + swell direction arrow
+    draw_icon(image, 0, 11, WAVE_ICON, COLOR_ICON)
+    swell_text_width = swell_text.length * 4 + 7
+    draw_direction_arrow(image, swell_text_width + 1, 11, @marine[:swell_direction], COLOR_ICON)
   end
 
-  # Row 0: wind icon + speed-gusts + KN + direction arrow
-  def draw_wind(image)
-    draw_icon(image, 0, 0, WIND_ICON, COLOR_ICON)
+  def draw_text(png_path)
+    # Row 0: wind
+    BitmapFont.draw_text_on_file(png_path, 7, 5, wind_text, HEX_WIND)
 
+    # Row 11: swell
+    BitmapFont.draw_text_on_file(png_path, 7, 16, swell_text, HEX_SWELL)
+
+    # Row 22: sea state
+    BitmapFont.draw_text_on_file(png_path, 1, 27, sea_state_text, HEX_WAVE)
+  end
+
+  def wind_text
     speed = (@wind[:speed_kn] || 0).round
     gusts = @wind[:gusts_kn]&.round
 
-    wind_text = if gusts && gusts > speed
-      "#{speed}-#{gusts}KN"
+    if gusts && gusts > speed
+      "#{speed}-#{gusts}kn"
     else
-      "#{speed}KN"
+      "#{speed}kn"
     end
-
-    cursor = BitmapFont.draw_text(image, 7, 0, wind_text, COLOR_WIND)
-    draw_direction_arrow(image, cursor + 1, 0, @wind[:direction], COLOR_WIND)
   end
 
-  # Row 11: wave icon + swell height + period + direction arrow
-  def draw_swell(image)
-    draw_icon(image, 0, 11, WAVE_ICON, COLOR_ICON)
-
-    height_text = format("%.1fM", @marine[:swell_height] || 0)
-    cursor = BitmapFont.draw_text(image, 7, 11, height_text, COLOR_SWELL)
-
-    period_text = "#{(@marine[:swell_period] || 0).round}s"
-    cursor = BitmapFont.draw_text(image, cursor + 2, 11, period_text, COLOR_SWELL)
-
-    draw_direction_arrow(image, cursor + 2, 11, @marine[:swell_direction], COLOR_SWELL)
+  def swell_text
+    height = format("%.1fm", @marine[:swell_height] || 0)
+    period = "#{(@marine[:swell_period] || 0).round}s"
+    "#{height} #{period}"
   end
 
-  # Row 22: sea state (combined wave height + period)
-  def draw_sea_state(image)
+  def sea_state_text
     height = @marine[:wave_height] || 0
     state = sea_state_description(height)
-
-    BitmapFont.draw_text(image, 1, 22, "SEA", COLOR_LABEL)
-
-    height_text = format("%.1fM", height)
-    cursor = BitmapFont.draw_text(image, 17, 22, height_text, COLOR_WAVE)
-
-    BitmapFont.draw_text(image, cursor + 2, 22, state, COLOR_WAVE)
+    "Sea #{format("%.1fm", height)} #{state}"
   end
 
   def draw_icon(image, x, y, icon, color)
@@ -149,15 +148,15 @@ class MarineRenderer
 
   def sea_state_description(wave_height)
     case wave_height
-    when 0...0.1    then "CALM"
-    when 0.1...0.5  then "SMOOTH"
-    when 0.5...1.25 then "SLIGHT"
-    when 1.25...2.5 then "MOD"
-    when 2.5...4.0  then "ROUGH"
-    when 4.0...6.0  then "VROUGH"
-    when 6.0...9.0  then "HIGH"
-    when 9.0...14.0 then "VHIGH"
-    else                 "PHENML"
+    when 0...0.1    then "Calm"
+    when 0.1...0.5  then "Smooth"
+    when 0.5...1.25 then "Slight"
+    when 1.25...2.5 then "Mod"
+    when 2.5...4.0  then "Rough"
+    when 4.0...6.0  then "V.Rough"
+    when 6.0...9.0  then "High"
+    when 9.0...14.0 then "V.High"
+    else                 "Phenomenal"
     end
   end
 end

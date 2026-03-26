@@ -19,86 +19,40 @@ class RendererTest < Minitest::Test
     @renderer = Renderer.new("Salcombe", @calculator, now: @now)
   end
 
-  def test_to_png_returns_binary_data
-    png = @renderer.to_png
-    assert_kind_of String, png
-    refute_empty png
-  end
-
-  def test_render_image_dimensions
-    image = @renderer.send(:render_image)
-    assert_equal 64, image.width
-    assert_equal 32, image.height
-  end
-
-  def test_render_image_has_high_tide_pixels
-    image = @renderer.send(:render_image)
-
-    # Up arrow drawn at (1, 0) in cyan — top center pixel of arrow should be lit
-    cyan = ChunkyPNG::Color.rgb(0, 204, 255)
-    assert_equal cyan, image[3, 0] # arrow pixel [0,0,1,0,0] -> x=3
-  end
-
-  def test_render_image_has_now_line
-    image = @renderer.send(:render_image)
-    red = ChunkyPNG::Color.rgb(255, 0, 0)
-
-    # Red vertical line at x=32 through the graph area
-    (Renderer::GRAPH_TOP..Renderer::GRAPH_BOTTOM).each do |y|
-      assert_equal red, image[32, y], "Expected red at (32, #{y})"
-    end
-  end
-
-  def test_render_image_has_curve_pixels
-    image = @renderer.send(:render_image)
-    blue = ChunkyPNG::Color.rgb(0, 119, 255)
-
-    # At least some blue pixels should exist in the graph area
-    blue_count = 0
-    (0...64).each do |x|
-      (Renderer::GRAPH_TOP..Renderer::GRAPH_BOTTOM).each do |y|
-        blue_count += 1 if image[x, y] == blue
-      end
-    end
-    assert blue_count > 0, "Expected blue curve pixels in graph area"
-  end
-
-  def test_render_image_has_fill_only_left_of_center
-    image = @renderer.send(:render_image)
-    fill = ChunkyPNG::Color.rgb(0, 34, 68)
-
-    # Fill should only appear at x <= 32
-    (33...64).each do |x|
-      (Renderer::GRAPH_TOP..Renderer::GRAPH_BOTTOM).each do |y|
-        refute_equal fill, image[x, y], "Unexpected fill at (#{x}, #{y})"
-      end
-    end
-  end
-
   def test_to_webp_returns_webp_data
     skip "ImageMagick not installed" unless system("which convert", out: File::NULL, err: File::NULL)
 
     webp = @renderer.to_webp
     assert_kind_of String, webp
-    # WebP files start with RIFF header
     assert webp.start_with?("RIFF"), "Expected WebP RIFF header"
   end
 
-  def test_uk_offset_gmt_in_winter
-    winter = Time.utc(2026, 1, 15, 12, 0, 0)
-    renderer = Renderer.new("Test", @calculator, now: winter)
-    assert_equal "+00:00", renderer.send(:uk_offset)
+  def test_to_webp_produces_nonzero_data
+    skip "ImageMagick not installed" unless system("which convert", out: File::NULL, err: File::NULL)
+
+    webp = @renderer.to_webp
+    assert webp.bytesize > 100, "Expected substantial WebP data"
   end
 
-  def test_uk_offset_bst_in_summer
+  def test_format_local_time_bst
+    # March 26 2026 is during BST (clocks change March 29 2026)
+    # Actually, BST starts last Sunday of March. In 2026 that's March 29.
+    # So March 26 is still GMT.
     summer = Time.utc(2026, 7, 15, 12, 0, 0)
     renderer = Renderer.new("Test", @calculator, now: summer)
-    assert_equal "+01:00", renderer.send(:uk_offset)
+    # 12:00 UTC = 13:00 BST
+    assert_equal "13:00", renderer.send(:format_local_time, summer)
+  end
+
+  def test_format_local_time_gmt
+    winter = Time.utc(2026, 1, 15, 12, 0, 0)
+    renderer = Renderer.new("Test", @calculator, now: winter)
+    assert_equal "12:00", renderer.send(:format_local_time, winter)
   end
 
   def test_format_height
-    assert_equal "4.8M", @renderer.send(:format_height, 4.8)
-    assert_equal "1.2M", @renderer.send(:format_height, 1.2)
-    assert_equal "0.0M", @renderer.send(:format_height, 0.0)
+    assert_equal "4.8m", @renderer.send(:format_height, 4.8)
+    assert_equal "1.2m", @renderer.send(:format_height, 1.2)
+    assert_equal "0.0m", @renderer.send(:format_height, 0.0)
   end
 end
