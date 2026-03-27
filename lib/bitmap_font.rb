@@ -9,8 +9,9 @@ module BitmapFont
   FONT_PATH = File.expand_path("../fonts/tom-thumb.bdf", __dir__)
   FONT_SIZE = 6
 
-  # Scalable monospace TTF used where larger text is needed (marine screen).
-  MONO_FONT_PATH = File.expand_path("../fonts/LiberationMono-Regular.ttf", __dir__)
+  # 6×13 bitmap font for larger text (marine screen).
+  LARGE_FONT_PATH = File.expand_path("../fonts/6x13.bdf", __dir__)
+  LARGE_FONT_SIZE = 13
 
   # Up arrow (▲) — 5x5
   UP_ARROW = [

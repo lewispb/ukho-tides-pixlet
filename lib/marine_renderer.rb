@@ -16,10 +16,14 @@ class MarineRenderer
   HEX_WAVE  = "#0077ff"   # blue
   HEX_LABEL = "#828282"   # grey
 
-  FONT_PATH = BitmapFont::MONO_FONT_PATH
-  FONT_SIZE = 8
-  # Liberation Mono at 8pt: ~5px advance per character
-  FONT_CHAR_WIDTH = 5
+  # Primary text: 6×13 bitmap font (wind + swell rows)
+  FONT_PATH = BitmapFont::LARGE_FONT_PATH
+  FONT_SIZE = BitmapFont::LARGE_FONT_SIZE
+  FONT_CHAR_WIDTH = 6
+
+  # Sea state row: Tom Thumb (fits in the remaining 4px at bottom)
+  SMALL_FONT_PATH = BitmapFont::FONT_PATH
+  SMALL_FONT_SIZE = BitmapFont::FONT_SIZE
 
   # Compass arrows 5x5 — 8 cardinal directions
   ARROWS = {
@@ -81,28 +85,29 @@ class MarineRenderer
   private
 
   def draw_icons(image)
-    # Wind icon + direction arrow
-    draw_icon(image, 0, 0, WIND_ICON, COLOR_ICON)
+    # Row 1 (y=0..13): wind icon centered at y=4
+    draw_icon(image, 0, 4, WIND_ICON, COLOR_ICON)
     wind_text_width = wind_text.length * FONT_CHAR_WIDTH + 7
-    draw_direction_arrow(image, wind_text_width + 1, 0, @wind[:direction], COLOR_ICON)
+    draw_direction_arrow(image, wind_text_width + 1, 4, @wind[:direction], COLOR_ICON)
 
-    # Wave icon + swell direction arrow
-    draw_icon(image, 0, 11, WAVE_ICON, COLOR_ICON)
+    # Row 2 (y=14..27): swell icon centered at y=18
+    draw_icon(image, 0, 18, WAVE_ICON, COLOR_ICON)
     swell_text_width = swell_text.length * FONT_CHAR_WIDTH + 7
-    draw_direction_arrow(image, swell_text_width + 1, 11, @marine[:swell_direction], COLOR_ICON)
+    draw_direction_arrow(image, swell_text_width + 1, 18, @marine[:swell_direction], COLOR_ICON)
   end
 
   def draw_text(png_path)
-    opts = { font_path: FONT_PATH, font_size: FONT_SIZE }
+    big = { font_path: FONT_PATH, font_size: FONT_SIZE }
 
-    # Row 0: wind — baseline at 8 for 8pt font
-    BitmapFont.draw_text_on_file(png_path, 7, 8, wind_text, HEX_WIND, **opts)
+    # Row 1: wind (6×13, baseline at y=12)
+    BitmapFont.draw_text_on_file(png_path, 7, 12, wind_text, HEX_WIND, **big)
 
-    # Row 11: swell
-    BitmapFont.draw_text_on_file(png_path, 7, 19, swell_text, HEX_SWELL, **opts)
+    # Row 2: swell (6×13, baseline at y=26)
+    BitmapFont.draw_text_on_file(png_path, 7, 26, swell_text, HEX_SWELL, **big)
 
-    # Row 22: sea state word only
-    BitmapFont.draw_text_on_file(png_path, 1, 30, sea_state_text, HEX_WAVE, **opts)
+    # Row 3: sea state word (Tom Thumb, baseline at y=31)
+    BitmapFont.draw_text_on_file(png_path, 1, 31, sea_state_text, HEX_WAVE,
+      font_path: SMALL_FONT_PATH, font_size: SMALL_FONT_SIZE)
   end
 
   def wind_text
