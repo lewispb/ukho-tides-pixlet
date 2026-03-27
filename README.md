@@ -1,8 +1,8 @@
 # ukho-tides-pixlet
 
-Display UK tide times on your [Tidbyt](https://tidbyt.com) using the [UKHO Admiralty Tidal API](https://admiraltyapi.portal.azure-api.net).
+Display UK tide times on your [Tidbyt](https://tidbyt.com) using the [UKHO Admiralty Tidal API](https://developer.admiralty.co.uk).
 
-Shows a tide curve chart with the current tidal state shaded in blue, plus the next high and low tide times and heights.
+Shows a tide curve chart with the current tidal state shaded in blue, plus the next high and low tide times and heights. A second screen shows current wind speed and direction, swell height, period, and direction, and a sea state description based on the Douglas Sea Scale. Marine data is sourced from [Open-Meteo](https://open-meteo.com).
 
 | Tides | Wind & Swell |
 |-------|--------------|
@@ -12,7 +12,7 @@ Shows a tide curve chart with the current tidal state shaded in blue, plus the n
 
 ### 1. Get API keys
 
-- **Admiralty API key**: Sign up for a free Discovery account at https://admiraltyapi.portal.azure-api.net
+- **Admiralty API key**: Sign up for a free Discovery account at https://developer.admiralty.co.uk
 - **Tidbyt credentials**: Open the Tidbyt mobile app → Settings → Get API key
 
 ### 2. Find your station ID

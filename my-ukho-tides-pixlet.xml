@@ -20,7 +20,7 @@
   <DonateText/>
   <DonateLink/>
   <Requires>Requires a UKHO Admiralty API key (free) and Tidbyt device credentials.</Requires>
-  <Config Name="Admiralty API Key" Target="ADMIRALTY_API_KEY" Default="" Mode="" Description="UKHO Admiralty API subscription key. Sign up free at https://admiraltyapi.portal.azure-api.net" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="Admiralty API Key" Target="ADMIRALTY_API_KEY" Default="" Mode="" Description="UKHO Admiralty API subscription key. Sign up free at https://developer.admiralty.co.uk" Type="Variable" Display="always" Required="true" Mask="true"/>
   <Config Name="Tidbyt Device ID" Target="TIDBYT_DEVICE_ID" Default="" Mode="" Description="Your Tidbyt device ID (find in Tidbyt app settings)" Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="Tidbyt API Token" Target="TIDBYT_API_TOKEN" Default="" Mode="" Description="Your Tidbyt API token (find in Tidbyt app settings)" Type="Variable" Display="always" Required="true" Mask="true"/>
   <Config Name="Station ID" Target="STATION_ID" Default="0020" Mode="" Description="UKHO station ID. Default 0020 = Salcombe. Find IDs at https://easytide.admiralty.co.uk" Type="Variable" Display="always" Required="false" Mask="false">0020</Config>
