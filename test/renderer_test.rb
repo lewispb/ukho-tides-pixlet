@@ -34,20 +34,20 @@ class RendererTest < Minitest::Test
     assert webp.bytesize > 100, "Expected substantial WebP data"
   end
 
-  def test_format_local_time_bst
+  def test_format_time_bst
     # March 26 2026 is during BST (clocks change March 29 2026)
     # Actually, BST starts last Sunday of March. In 2026 that's March 29.
     # So March 26 is still GMT.
     summer = Time.utc(2026, 7, 15, 12, 0, 0)
     renderer = Renderer.new("Test", @calculator, now: summer)
     # 12:00 UTC = 13:00 BST
-    assert_equal "13:00", renderer.send(:format_local_time, summer)
+    assert_equal "13:00", renderer.send(:format_time, summer)
   end
 
-  def test_format_local_time_gmt
+  def test_format_time_gmt
     winter = Time.utc(2026, 1, 15, 12, 0, 0)
     renderer = Renderer.new("Test", @calculator, now: winter)
-    assert_equal "12:00", renderer.send(:format_local_time, winter)
+    assert_equal "12:00", renderer.send(:format_time, winter)
   end
 
   def test_format_height

@@ -11,64 +11,91 @@ require_relative "../lib/tidbyt_push"
 
 $stdout.sync = true
 
-interval = Integer(ENV.fetch("PUSH_INTERVAL_SECONDS", 900))
-station_id = ENV.fetch("STATION_ID", "0020")
+module App
+  STATION_ID = ENV.fetch("STATION_ID", "0020")
+  INTERVAL   = Integer(ENV.fetch("PUSH_INTERVAL_SECONDS", 900))
 
-puts "[ukho-tides] Starting with station_id=#{station_id} interval=#{interval}s"
+  module_function
 
-loop do
-  begin
-    api_key = ENV.fetch("ADMIRALTY_API_KEY")
-    device_id = ENV.fetch("TIDBYT_DEVICE_ID")
-    api_token = ENV.fetch("TIDBYT_API_TOKEN")
-    tidbyt = TidbytPush.new(device_id: device_id, api_token: api_token)
+  def run
+    log "Starting with station_id=#{STATION_ID} interval=#{INTERVAL}s"
 
-    # --- Screen 1: Tides ---
-    puts "[ukho-tides] Fetching station info..."
-    client = UkhoClient.new(api_key)
-    station = client.station_info(station_id)
-    puts "[ukho-tides] Station: #{station[:name]} (#{station[:latitude]}, #{station[:longitude]})"
+    loop do
+      tick
+      log "Sleeping #{INTERVAL}s..."
+      sleep INTERVAL
+    end
+  end
 
-    puts "[ukho-tides] Fetching tidal events..."
-    events = client.tidal_events(station_id)
-    puts "[ukho-tides] Got #{events.length} events"
+  def tick
+    station = fetch_station
+    push_tide_screen(station)
+    push_marine_screen(station)
+  rescue => e
+    log "ERROR: #{e.class}: #{e.message}"
+    log e.backtrace.first(5).map { |l| "  #{l}" }.join("\n")
+  end
+
+  def fetch_station
+    log "Fetching station info..."
+    station = ukho_client.station_info(STATION_ID)
+    log "Station: #{station[:name]} (#{station[:latitude]}, #{station[:longitude]})"
+    station
+  end
+
+  def push_tide_screen(station)
+    log "Fetching tidal events..."
+    events = ukho_client.tidal_events(STATION_ID)
+    log "Got #{events.length} events"
 
     now = Time.now.utc
     calculator = TideCalculator.new(events)
 
-    next_high = calculator.next_high(now)
-    next_low = calculator.next_low(now)
-    puts "[ukho-tides] Next high: #{next_high&.dig(:time)} #{next_high&.dig(:height)}m" if next_high
-    puts "[ukho-tides] Next low:  #{next_low&.dig(:time)} #{next_low&.dig(:height)}m" if next_low
+    log_tide_event("high", calculator.next_high(now))
+    log_tide_event("low",  calculator.next_low(now))
 
-    tide_renderer = Renderer.new(station[:name], calculator, now: now)
-    tide_webp = tide_renderer.to_webp
-    puts "[ukho-tides] Rendered tide image (#{tide_webp.bytesize} bytes)"
+    webp = Renderer.new(station[:name], calculator, now: now).to_webp
+    log "Rendered tide image (#{webp.bytesize} bytes)"
 
-    tidbyt.push(tide_webp, installation_id: "ukhotides")
-    puts "[ukho-tides] Pushed tide screen"
+    tidbyt.push(webp, installation_id: "ukhotides")
+    log "Pushed tide screen"
+  end
 
-    # --- Screen 2: Marine weather ---
-    puts "[ukho-tides] Fetching marine weather..."
+  def push_marine_screen(station)
+    log "Fetching marine weather..."
     meteo = OpenMeteoClient.new(latitude: station[:latitude], longitude: station[:longitude])
 
     marine = meteo.current_marine
-    wind = meteo.current_wind
-    puts "[ukho-tides] Wind: #{wind[:speed_kn]&.round}kn gusts #{wind[:gusts_kn]&.round}kn dir #{wind[:direction]}°"
-    puts "[ukho-tides] Swell: #{marine[:swell_height]}m #{marine[:swell_period]}s dir #{marine[:swell_direction]}°"
-    puts "[ukho-tides] Waves: #{marine[:wave_height]}m"
+    wind   = meteo.current_wind
+    log "Wind: #{wind[:speed_kn]&.round}kn gusts #{wind[:gusts_kn]&.round}kn dir #{wind[:direction]}°"
+    log "Swell: #{marine[:swell_height]}m #{marine[:swell_period]}s dir #{marine[:swell_direction]}°"
+    log "Waves: #{marine[:wave_height]}m"
 
-    marine_renderer = MarineRenderer.new(marine: marine, wind: wind)
-    marine_webp = marine_renderer.to_webp
-    puts "[ukho-tides] Rendered marine image (#{marine_webp.bytesize} bytes)"
+    webp = MarineRenderer.new(marine: marine, wind: wind).to_webp
+    log "Rendered marine image (#{webp.bytesize} bytes)"
 
-    tidbyt.push(marine_webp, installation_id: "ukhotidesmarine")
-    puts "[ukho-tides] Pushed marine screen"
-  rescue => e
-    puts "[ukho-tides] ERROR: #{e.class}: #{e.message}"
-    puts e.backtrace.first(5).map { |l| "[ukho-tides]   #{l}" }.join("\n")
+    tidbyt.push(webp, installation_id: "ukhotidesmarine")
+    log "Pushed marine screen"
   end
 
-  puts "[ukho-tides] Sleeping #{interval}s..."
-  sleep interval
+  def ukho_client
+    @ukho_client ||= UkhoClient.new(ENV.fetch("ADMIRALTY_API_KEY"))
+  end
+
+  def tidbyt
+    @tidbyt ||= TidbytPush.new(
+      device_id: ENV.fetch("TIDBYT_DEVICE_ID"),
+      api_token: ENV.fetch("TIDBYT_API_TOKEN"),
+    )
+  end
+
+  def log_tide_event(label, event)
+    log "Next #{label}: #{event[:time]} #{event[:height]}m" if event
+  end
+
+  def log(message)
+    puts "[ukho-tides] #{message}"
+  end
 end
+
+App.run

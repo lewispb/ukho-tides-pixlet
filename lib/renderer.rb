@@ -1,31 +1,46 @@
 # frozen_string_literal: true
 
-require "chunky_png"
-require "tempfile"
 require "active_support"
 require "active_support/core_ext/time/zones"
+require_relative "pixel_canvas"
 require_relative "bitmap_font"
 
+# Renders the tide chart screen for Tidbyt (64×32).
+#
+# Layout:
+#   Row 0:  ▲ HH:MM X.Xm  (next high, cyan)
+#   Row 6:  ▼ HH:MM X.Xm  (next low, green)
+#   Rows 12–31: tide curve graph with red "now" line at x=32
 class Renderer
-  WIDTH  = 64
-  HEIGHT = 32
-
-  # Graph area
   GRAPH_TOP    = 12
   GRAPH_BOTTOM = 31
   GRAPH_HEIGHT = GRAPH_BOTTOM - GRAPH_TOP + 1
+  NOW_X        = 32
 
-  # Colors (ChunkyPNG RGBA)
-  COLOR_BG     = ChunkyPNG::Color.rgb(0, 0, 0)
-  COLOR_HIGH   = ChunkyPNG::Color.rgb(0, 204, 255)    # cyan
-  COLOR_LOW    = ChunkyPNG::Color.rgb(0, 204, 68)     # green
-  COLOR_CURVE  = ChunkyPNG::Color.rgb(0, 119, 255)    # blue
-  COLOR_FILL   = ChunkyPNG::Color.rgb(0, 34, 68)      # dark navy
-  COLOR_NOW    = ChunkyPNG::Color.rgb(255, 0, 0)      # red
+  COLOR_HIGH  = ChunkyPNG::Color.rgb(0, 204, 255)
+  COLOR_LOW   = ChunkyPNG::Color.rgb(0, 204, 68)
+  COLOR_CURVE = ChunkyPNG::Color.rgb(0, 119, 255)
+  COLOR_FILL  = ChunkyPNG::Color.rgb(0, 34, 68)
+  COLOR_NOW   = ChunkyPNG::Color.rgb(255, 0, 0)
 
-  # Colors (hex for ImageMagick text)
   HEX_HIGH = "#00ccff"
   HEX_LOW  = "#00cc44"
+
+  UP_ARROW = [
+    [0, 0, 1, 0, 0],
+    [0, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+  ].freeze
+
+  DOWN_ARROW = [
+    [1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+  ].freeze
 
   def initialize(station_name, calculator, now: Time.now.utc)
     @station_name = station_name.upcase
@@ -34,90 +49,58 @@ class Renderer
   end
 
   def to_webp
-    png_file = Tempfile.new(["tide", ".png"])
-    webp_file = Tempfile.new(["tide", ".webp"])
-    begin
-      # Step 1: ChunkyPNG draws graph + arrows
-      image = ChunkyPNG::Image.new(WIDTH, HEIGHT, COLOR_BG)
-      draw_arrows(image)
-      draw_graph(image)
-      draw_now_line(image)
-      image.save(png_file.path)
+    canvas = PixelCanvas.new
+    draw_arrows(canvas)
+    draw_graph(canvas)
+    draw_now_line(canvas)
 
-      # Step 2: ImageMagick adds text with BDF font
-      draw_text(png_file.path)
-
-      # Step 3: Convert to WebP
-      BitmapFont.convert_to_webp(png_file.path, webp_file.path)
-
-      File.binread(webp_file.path)
-    ensure
-      png_file.close!
-      webp_file.close!
-    end
+    canvas.to_webp { |png_path| draw_text(png_path) }
   end
 
   private
 
-  def draw_arrows(image)
-    next_high = @calculator.next_high(@now)
-    next_low = @calculator.next_low(@now)
-
-    BitmapFont.draw_arrow(image, 1, 0, BitmapFont::UP_ARROW, COLOR_HIGH) if next_high
-    BitmapFont.draw_arrow(image, 1, 6, BitmapFont::DOWN_ARROW, COLOR_LOW) if next_low
+  def draw_arrows(canvas)
+    canvas.draw_bitmap(x: 1, y: 0, bitmap: UP_ARROW, color: COLOR_HIGH) if next_high
+    canvas.draw_bitmap(x: 1, y: 6, bitmap: DOWN_ARROW, color: COLOR_LOW) if next_low
   end
 
   def draw_text(png_path)
-    next_high = @calculator.next_high(@now)
-    next_low = @calculator.next_low(@now)
-
     if next_high
-      ht = format_local_time(next_high[:time])
-      BitmapFont.draw_text_on_file(png_path, 7, 5, "#{ht} #{format_height(next_high[:height])}", HEX_HIGH)
+      BitmapFont.draw_text(png_path, x: 7, y: 5,
+        text: "#{format_time(next_high[:time])} #{format_height(next_high[:height])}",
+        color: HEX_HIGH)
     end
 
     if next_low
-      lt = format_local_time(next_low[:time])
-      BitmapFont.draw_text_on_file(png_path, 7, 11, "#{lt} #{format_height(next_low[:height])}", HEX_LOW)
+      BitmapFont.draw_text(png_path, x: 7, y: 11,
+        text: "#{format_time(next_low[:time])} #{format_height(next_low[:height])}",
+        color: HEX_LOW)
     end
   end
 
-  def draw_graph(image)
-    points = @calculator.curve_points(@now)
+  def draw_graph(canvas)
+    points  = @calculator.curve_points(@now)
     y_min, y_max = @calculator.y_limits
     y_range = y_max - y_min
 
-    now_x = 32
-
     points.each do |x, height|
-      normalized = (height - y_min) / y_range
-      curve_y = GRAPH_BOTTOM - (normalized * (GRAPH_HEIGHT - 1)).round
+      curve_y = GRAPH_BOTTOM - ((height - y_min) / y_range * (GRAPH_HEIGHT - 1)).round
 
-      image[x, curve_y] = COLOR_CURVE if in_bounds?(x, curve_y)
+      canvas.draw_pixel(x, curve_y, COLOR_CURVE)
 
-      if x <= now_x
-        ((curve_y + 1)..GRAPH_BOTTOM).each do |fill_y|
-          image[x, fill_y] = COLOR_FILL if in_bounds?(x, fill_y)
-        end
+      if x <= NOW_X
+        ((curve_y + 1)..GRAPH_BOTTOM).each { |y| canvas.draw_pixel(x, y, COLOR_FILL) }
       end
     end
   end
 
-  def draw_now_line(image)
-    (GRAPH_TOP..GRAPH_BOTTOM).each do |y|
-      image[32, y] = COLOR_NOW
-    end
+  def draw_now_line(canvas)
+    (GRAPH_TOP..GRAPH_BOTTOM).each { |y| canvas.draw_pixel(NOW_X, y, COLOR_NOW) }
   end
 
-  def in_bounds?(x, y)
-    x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT
-  end
+  def next_high  = @next_high  ||= @calculator.next_high(@now)
+  def next_low   = @next_low   ||= @calculator.next_low(@now)
 
-  def format_local_time(time)
-    time.in_time_zone("London").strftime("%H:%M")
-  end
-
-  def format_height(h)
-    format("%.1fm", h)
-  end
+  def format_time(time)   = time.in_time_zone("London").strftime("%H:%M")
+  def format_height(h)    = format("%.1fm", h)
 end

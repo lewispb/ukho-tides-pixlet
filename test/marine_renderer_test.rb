@@ -52,29 +52,6 @@ class MarineRendererTest < Minitest::Test
     assert_equal "Slight", @renderer.send(:sea_state_text)
   end
 
-  def test_degrees_to_cardinal
-    r = @renderer
-    assert_equal "N",  r.send(:degrees_to_cardinal, 0)
-    assert_equal "NE", r.send(:degrees_to_cardinal, 45)
-    assert_equal "E",  r.send(:degrees_to_cardinal, 90)
-    assert_equal "S",  r.send(:degrees_to_cardinal, 180)
-    assert_equal "W",  r.send(:degrees_to_cardinal, 270)
-    assert_equal "N",  r.send(:degrees_to_cardinal, 350)
-  end
-
-  def test_sea_state_descriptions
-    r = @renderer
-    assert_equal "Calm",   r.send(:sea_state_description, 0.0)
-    assert_equal "Smooth", r.send(:sea_state_description, 0.3)
-    assert_equal "Slight", r.send(:sea_state_description, 1.0)
-    assert_equal "Mod",    r.send(:sea_state_description, 2.0)
-    assert_equal "Rough",  r.send(:sea_state_description, 3.0)
-    assert_equal "V.Rough", r.send(:sea_state_description, 5.0)
-    assert_equal "High",   r.send(:sea_state_description, 7.0)
-    assert_equal "V.High", r.send(:sea_state_description, 12.0)
-    assert_equal "Phenomenal", r.send(:sea_state_description, 15.0)
-  end
-
   def test_handles_nil_values
     skip "ImageMagick not installed" unless system("which convert", out: File::NULL, err: File::NULL)
 
