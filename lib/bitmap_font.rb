@@ -9,6 +9,9 @@ module BitmapFont
   FONT_PATH = File.expand_path("../fonts/tom-thumb.bdf", __dir__)
   FONT_SIZE = 6
 
+  # Scalable monospace TTF used where larger text is needed (marine screen).
+  MONO_FONT_PATH = "/usr/share/fonts/liberation/LiberationMono-Regular.ttf"
+
   # Up arrow (▲) — 5x5
   UP_ARROW = [
     [0, 0, 1, 0, 0],
@@ -30,12 +33,12 @@ module BitmapFont
   module_function
 
   # Render text onto an existing PNG file using ImageMagick.
-  # color is a hex string like "#00ccff".
-  def draw_text_on_file(png_path, x, y, text, color)
+  # color is a hex string like "#00ccff". font_path and font_size override the defaults.
+  def draw_text_on_file(png_path, x, y, text, color, font_path: FONT_PATH, font_size: FONT_SIZE)
     system(
       "magick", png_path,
-      "-font", FONT_PATH,
-      "-pointsize", FONT_SIZE.to_s,
+      "-font", font_path,
+      "-pointsize", font_size.to_s,
       "-fill", color,
       "-annotate", "+#{x}+#{y}", text,
       png_path,
@@ -48,9 +51,10 @@ module BitmapFont
     system("magick", png_path, "-define", "webp:lossless=true", webp_path, exception: true)
   end
 
-  # Measure approximate pixel width of text (Tom Thumb is 4px advance per char).
-  def text_width(text)
-    text.length * 4
+  # Measure approximate pixel width of text.
+  # Tom Thumb is 4px advance per char at FONT_SIZE; scale proportionally for other sizes.
+  def text_width(text, font_size: FONT_SIZE)
+    (text.length * 4 * font_size / FONT_SIZE.to_f).ceil
   end
 
   # Draw a special arrow glyph (UP_ARROW or DOWN_ARROW) at (x, y) onto a ChunkyPNG image.

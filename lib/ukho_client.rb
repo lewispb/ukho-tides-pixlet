@@ -44,7 +44,7 @@ class UkhoClient
 
   # Fetch with file-based caching. Returns parsed JSON.
   def cached_get(url, cache_key:)
-    cache_file = File.join(ENV.fetch("UKHO_CACHE_DIR", "/tmp"), "ukho_#{cache_key}.json")
+    cache_file = File.join(ENV.fetch("UKHO_CACHE_DIR", "/data"), "ukho_#{cache_key}.json")
 
     if File.exist?(cache_file) && (Time.now - File.mtime(cache_file)) < CACHE_TTL
       data = JSON.parse(File.read(cache_file))

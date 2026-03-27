@@ -49,7 +49,7 @@ class MarineRendererTest < Minitest::Test
   end
 
   def test_sea_state_text
-    assert_equal "Sea 1.2m Slight", @renderer.send(:sea_state_text)
+    assert_equal "Slight", @renderer.send(:sea_state_text)
   end
 
   def test_degrees_to_cardinal

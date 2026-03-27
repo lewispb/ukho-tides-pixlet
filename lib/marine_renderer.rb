@@ -16,6 +16,11 @@ class MarineRenderer
   HEX_WAVE  = "#0077ff"   # blue
   HEX_LABEL = "#828282"   # grey
 
+  FONT_PATH = BitmapFont::MONO_FONT_PATH
+  FONT_SIZE = 8
+  # Liberation Mono at 8pt: ~5px advance per character
+  FONT_CHAR_WIDTH = 5
+
   # Compass arrows 5x5 — 8 cardinal directions
   ARROWS = {
     "N"  => [[0,0,1,0,0],[0,1,1,1,0],[1,0,1,0,1],[0,0,1,0,0],[0,0,1,0,0]],
@@ -78,24 +83,26 @@ class MarineRenderer
   def draw_icons(image)
     # Wind icon + direction arrow
     draw_icon(image, 0, 0, WIND_ICON, COLOR_ICON)
-    wind_text_width = wind_text.length * 4 + 7
+    wind_text_width = wind_text.length * FONT_CHAR_WIDTH + 7
     draw_direction_arrow(image, wind_text_width + 1, 0, @wind[:direction], COLOR_ICON)
 
     # Wave icon + swell direction arrow
     draw_icon(image, 0, 11, WAVE_ICON, COLOR_ICON)
-    swell_text_width = swell_text.length * 4 + 7
+    swell_text_width = swell_text.length * FONT_CHAR_WIDTH + 7
     draw_direction_arrow(image, swell_text_width + 1, 11, @marine[:swell_direction], COLOR_ICON)
   end
 
   def draw_text(png_path)
-    # Row 0: wind
-    BitmapFont.draw_text_on_file(png_path, 7, 5, wind_text, HEX_WIND)
+    opts = { font_path: FONT_PATH, font_size: FONT_SIZE }
+
+    # Row 0: wind — baseline at 8 for 8pt font
+    BitmapFont.draw_text_on_file(png_path, 7, 8, wind_text, HEX_WIND, **opts)
 
     # Row 11: swell
-    BitmapFont.draw_text_on_file(png_path, 7, 16, swell_text, HEX_SWELL)
+    BitmapFont.draw_text_on_file(png_path, 7, 19, swell_text, HEX_SWELL, **opts)
 
-    # Row 22: sea state
-    BitmapFont.draw_text_on_file(png_path, 1, 27, sea_state_text, HEX_WAVE)
+    # Row 22: sea state word only
+    BitmapFont.draw_text_on_file(png_path, 1, 30, sea_state_text, HEX_WAVE, **opts)
   end
 
   def wind_text
@@ -116,9 +123,7 @@ class MarineRenderer
   end
 
   def sea_state_text
-    height = @marine[:wave_height] || 0
-    state = sea_state_description(height)
-    "Sea #{format("%.1fm", height)} #{state}"
+    sea_state_description(@marine[:wave_height] || 0)
   end
 
   def draw_icon(image, x, y, icon, color)

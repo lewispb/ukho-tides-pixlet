@@ -25,4 +25,5 @@
   <Config Name="Tidbyt API Token" Target="TIDBYT_API_TOKEN" Default="" Mode="" Description="Your Tidbyt API token (find in Tidbyt app settings)" Type="Variable" Display="always" Required="true" Mask="true"/>
   <Config Name="Station ID" Target="STATION_ID" Default="0020" Mode="" Description="UKHO station ID. Default 0020 = Salcombe. Find IDs at https://easytide.admiralty.co.uk" Type="Variable" Display="always" Required="false" Mask="false">0020</Config>
   <Config Name="Push Interval (seconds)" Target="PUSH_INTERVAL_SECONDS" Default="900" Mode="" Description="How often to update the Tidbyt display in seconds (default 900 = 15 minutes)" Type="Variable" Display="always" Required="false" Mask="false">900</Config>
+  <Config Name="Cache Path" Target="/data" Default="/mnt/user/appdata/ukho-tides-pixlet" Mode="rw" Description="Path on the host to persist the API response cache across container restarts." Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/ukho-tides-pixlet</Config>
 </Container>
