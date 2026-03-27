@@ -90,10 +90,10 @@ class MarineRenderer
     wind_text_width = wind_text.length * FONT_CHAR_WIDTH + 7
     draw_direction_arrow(image, wind_text_width + 1, 2, @wind[:direction], COLOR_ICON)
 
-    # Row 2: swell icon centered at y=16
-    draw_icon(image, 0, 16, WAVE_ICON, COLOR_ICON)
+    # Row 2: swell icon centered at y=15
+    draw_icon(image, 0, 15, WAVE_ICON, COLOR_ICON)
     swell_text_width = swell_text.length * FONT_CHAR_WIDTH + 7
-    draw_direction_arrow(image, swell_text_width + 1, 16, @marine[:swell_direction], COLOR_ICON)
+    draw_direction_arrow(image, swell_text_width + 1, 15, @marine[:swell_direction], COLOR_ICON)
   end
 
   def draw_text(png_path)
@@ -102,8 +102,8 @@ class MarineRenderer
     # Row 1: wind (6×13, baseline at y=10)
     BitmapFont.draw_text_on_file(png_path, 7, 10, wind_text, HEX_WIND, **big)
 
-    # Row 2: swell (6×13, baseline at y=24)
-    BitmapFont.draw_text_on_file(png_path, 7, 24, swell_text, HEX_SWELL, **big)
+    # Row 2: swell (6×13, baseline at y=23)
+    BitmapFont.draw_text_on_file(png_path, 7, 23, swell_text, HEX_SWELL, **big)
 
     # Row 3: sea state word (Tom Thumb, baseline at y=31, aligned with text at x=7)
     BitmapFont.draw_text_on_file(png_path, 7, 31, sea_state_text, HEX_WAVE,
