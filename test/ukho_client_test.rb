@@ -2,10 +2,20 @@
 
 require_relative "test_helper"
 require "ukho_client"
+require "tmpdir"
+require "fileutils"
 
 class UkhoClientTest < Minitest::Test
   def setup
+    @cache_dir = Dir.mktmpdir("ukho_client_test")
+    ENV["UKHO_CACHE_DIR"] = @cache_dir
     @client = UkhoClient.new("test-api-key")
+  end
+
+  def teardown
+    super  # lets WebMock reset request history
+    FileUtils.rm_rf(@cache_dir)
+    ENV.delete("UKHO_CACHE_DIR")
   end
 
   def test_station_name
@@ -74,5 +84,41 @@ class UkhoClientTest < Minitest::Test
 
     assert_requested(:get, "https://admiraltyapi.azure-api.net/uktidalapi/api/V1/Stations/0020/TidalEvents",
       headers: { "Ocp-Apim-Subscription-Key" => "test-api-key" })
+  end
+
+  def test_tidal_events_served_from_cache_on_second_call
+    body = [
+      { "EventType" => "HighWater", "DateTime" => "2026-03-26T14:32:00", "Height" => 4.8 },
+    ].to_json
+
+    stub_request(:get, "https://admiraltyapi.azure-api.net/uktidalapi/api/V1/Stations/0020/TidalEvents")
+      .to_return(status: 200, body: body, headers: { "Content-Type" => "application/json" })
+
+    @client.tidal_events("0020")
+    @client.tidal_events("0020")
+
+    # API should only be called once; second call served from cache
+    assert_requested(:get, "https://admiraltyapi.azure-api.net/uktidalapi/api/V1/Stations/0020/TidalEvents",
+      times: 1)
+  end
+
+  def test_tidal_events_refetches_when_cache_expired
+    body = [
+      { "EventType" => "HighWater", "DateTime" => "2026-03-26T14:32:00", "Height" => 4.8 },
+    ].to_json
+
+    stub_request(:get, "https://admiraltyapi.azure-api.net/uktidalapi/api/V1/Stations/0020/TidalEvents")
+      .to_return(status: 200, body: body, headers: { "Content-Type" => "application/json" })
+
+    cache_file = File.join(@cache_dir, "ukho_tidal_events_0020.json")
+    File.write(cache_file, body)
+    # Back-date mtime so the cache looks expired
+    old_time = Time.now - (UkhoClient::CACHE_TTL + 1)
+    File.utime(old_time, old_time, cache_file)
+
+    @client.tidal_events("0020")
+
+    assert_requested(:get, "https://admiraltyapi.azure-api.net/uktidalapi/api/V1/Stations/0020/TidalEvents",
+      times: 1)
   end
 end

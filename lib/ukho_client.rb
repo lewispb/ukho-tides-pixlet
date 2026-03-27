@@ -7,6 +7,10 @@ require "uri"
 class UkhoClient
   API_BASE = "https://admiraltyapi.azure-api.net/uktidalapi/api/V1/Stations"
 
+  # Tidal predictions are pre-computed and never change; cache for 6h so we
+  # minimise API calls while always having fresh upcoming events in the window.
+  CACHE_TTL = 6 * 3600
+
   def initialize(api_key)
     @api_key = api_key
   end
@@ -26,8 +30,8 @@ class UkhoClient
   end
 
   def tidal_events(station_id)
-    data = get("#{API_BASE}/#{station_id}/TidalEvents")
-    data.map do |event|
+    raw = cached_get("#{API_BASE}/#{station_id}/TidalEvents", cache_key: "tidal_events_#{station_id}")
+    raw.map do |event|
       {
         type: event["EventType"] == "HighWater" ? :high : :low,
         time: Time.parse(event["DateTime"] + " UTC"),
@@ -37,6 +41,22 @@ class UkhoClient
   end
 
   private
+
+  # Fetch with file-based caching. Returns parsed JSON.
+  def cached_get(url, cache_key:)
+    cache_file = File.join(ENV.fetch("UKHO_CACHE_DIR", "/tmp"), "ukho_#{cache_key}.json")
+
+    if File.exist?(cache_file) && (Time.now - File.mtime(cache_file)) < CACHE_TTL
+      data = JSON.parse(File.read(cache_file))
+      puts "[ukho-tides] Cache hit for #{cache_key} (age #{(Time.now - File.mtime(cache_file)).to_i}s)"
+      return data
+    end
+
+    puts "[ukho-tides] Cache miss for #{cache_key}, fetching from API..."
+    data = get(url)
+    File.write(cache_file, JSON.generate(data))
+    data
+  end
 
   def get(url)
     uri = URI(url)
