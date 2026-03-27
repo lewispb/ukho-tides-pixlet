@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IMAGE="ghcr.io/lewispb/ukho-tides-pixlet:latest"
+
+echo "[docker-push] Building $IMAGE..."
+docker build --platform linux/amd64 -t "$IMAGE" .
+
+echo "[docker-push] Pushing $IMAGE..."
+docker push "$IMAGE"
+
+echo "[docker-push] Done."
