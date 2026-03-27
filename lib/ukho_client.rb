@@ -17,7 +17,7 @@ class UkhoClient
   end
 
   def station_info(station_id)
-    data = get("#{API_BASE}/#{station_id}")
+    data = cached_get("#{API_BASE}/#{station_id}", cache_key: "station_info_#{station_id}")
     coords = data.dig("geometry", "coordinates") || []
     {
       name: data.dig("properties", "Name") || station_id,
