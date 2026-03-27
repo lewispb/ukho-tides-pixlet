@@ -4,6 +4,10 @@ Display UK tide times on your [Tidbyt](https://tidbyt.com) using the [UKHO Admir
 
 Shows a tide curve chart with the current tidal state shaded in blue, plus the next high and low tide times and heights.
 
+| Tides | Marine |
+|-------|--------|
+| ![Tides screen](screenshots/tides.jpg) | ![Marine screen](screenshots/marine.jpg) |
+
 ## Setup
 
 ### 1. Get API keys
