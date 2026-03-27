@@ -10,7 +10,7 @@ module BitmapFont
   FONT_SIZE = 6
 
   # Scalable monospace TTF used where larger text is needed (marine screen).
-  MONO_FONT_PATH = "/usr/share/fonts/liberation/LiberationMono-Regular.ttf"
+  MONO_FONT_PATH = File.expand_path("../fonts/LiberationMono-Regular.ttf", __dir__)
 
   # Up arrow (▲) — 5x5
   UP_ARROW = [
