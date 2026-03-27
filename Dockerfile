@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /data
+
 WORKDIR /app
 
 COPY Gemfile Gemfile.lock ./

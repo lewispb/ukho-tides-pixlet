@@ -3,6 +3,7 @@
 require "net/http"
 require "json"
 require "uri"
+require "fileutils"
 
 class UkhoClient
   API_BASE = "https://admiraltyapi.azure-api.net/uktidalapi/api/V1/Stations"
@@ -54,6 +55,7 @@ class UkhoClient
 
     puts "[ukho-tides] Cache miss for #{cache_key}, fetching from API..."
     data = get(url)
+    FileUtils.mkdir_p(File.dirname(cache_file))
     File.write(cache_file, JSON.generate(data))
     data
   end
